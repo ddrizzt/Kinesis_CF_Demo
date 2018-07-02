@@ -11,8 +11,8 @@ print "Load local rating data and send to Kinesis Stream: %s" % stream_name
 
 client = boto3.client(
     'kinesis',
-    aws_access_key_id='AKIAIAFIFMS6PVJ47WCA',
-    aws_secret_access_key='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',
+    aws_access_key_id='ACCKEY',
+    aws_secret_access_key='SECKEY',
     region_name='us-west-2'
 )
 

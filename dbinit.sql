@@ -25,7 +25,7 @@ GRANT ALL ON TABLE rating TO PUBLIC;
 
 COPY books (book_id, isbn, authors, original_publication_year, original_title, title, language_code, small_image_url)
 FROM 's3://gd-shdevops/eason/datastream/books_new.tar.gz'
-CREDENTIALS 'aws_access_key_id=AKIAIAFIFMS6PVJ47WCA;aws_secret_access_key=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'
+CREDENTIALS 'aws_access_key_id=ACCKEY;aws_secret_access_key=SECKEY'
 GZIP
 REGION 'us-west-1'
 EMPTYASNULL
