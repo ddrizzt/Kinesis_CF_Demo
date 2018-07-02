@@ -14,6 +14,19 @@
       "AllowedValues" : ["t2.micro"],
       "ConstraintDescription" : "must be a valid EC2 instance type."
     },
+    "RedshiftRootUser" : {
+      "Description" : "Root user name for redshift cluster",
+      "Type" : "String",
+      "AllowedPattern" : "[0-9a-zA-Z_]{4,24}",
+      "ConstraintDescription" : "Root user name for the redshift cluster"
+    },
+    "RedshiftRootPass" : {
+      "Description" : "Redshift root user password",
+      "Type" : "String",
+      "NoEcho" : "true",
+      "AllowedPattern" : "[0-9a-zA-Z_]{4,24}",
+      "ConstraintDescription" : "Password must be between 4 and 24 characters and can only contain digits 0 through 9, ASCII letters A through Z (uppercase and lowercase), and a underscore (_)."
+    },
     "IPRange" : {
       "Description" : "The IP address range that can be open to public",
       "Type" : "String",
@@ -24,6 +37,7 @@
       "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x."
     }
   },
+  
   "Mappings" : {
     "AWSInstanceType2Arch" : {
       "t2.micro" : {"Arch" : "HVM64"}
@@ -80,6 +94,43 @@
       }
     },
     
+    "myuser" : {
+      "Type" : "AWS::IAM::User",
+      "Properties" : {
+        "Path" : "/",
+        "LoginProfile" : {
+          "Password" : {"Ref" : "RedshiftRootPass"}
+        },
+        "Policies" : [
+          {
+            "PolicyName" : "tmp_s3access",
+            "PolicyDocument" : {
+              "Version" : "2012-10-17",
+              "Statement" : [
+                {
+                  "Effect" : "Allow",
+                  "Action" : [
+                    "kinesis:*",
+                    "s3:PutObject",
+                    "s3:GetObject",
+                    "s3:ListBucket"
+                  ],
+                  "Resource" : "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    
+    "myaccesskey" : {
+      "Type" : "AWS::IAM::AccessKey",
+      "Properties" : {
+        "UserName" : {"Ref" : "myuser"}
+      }
+    },
+    
     "InstanceSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
@@ -126,8 +177,8 @@
         "ClusterType" : "single-node",
         "DBName" : "bookrating",
         "Encrypted" : false,
-        "MasterUsername" : "eason",
-        "MasterUserPassword" : "easoN123",
+        "MasterUsername" : {"Ref" : "RedshiftRootUser"},
+        "MasterUserPassword" : {"Ref" : "RedshiftRootPass"},
         "NodeType" : "dc2.large",
         "Port" : 5439,
         "PubliclyAccessible" : true
@@ -167,8 +218,8 @@
             "DataTableColumns" : "logtime,user_id,book_id,rating",
             "DataTableName" : "rating"
           },
-          "Username" : "eason",
-          "Password" : "easoN123",
+          "Username" : {"Ref" : "RedshiftRootUser"},
+          "Password" : {"Ref" : "RedshiftRootPass"},
           "RoleARN" : {"Fn::GetAtt" : ["IAMRole", "Arn"]},
           "S3Configuration" : {
             "BucketARN" : "arn:aws:s3:::gd-shdevops",
@@ -216,18 +267,26 @@
                 "grafana-cli plugins install grafana-piechart-panel\n",
                 "yum -y install postgresql\n",
                 "mkdir -p /mnt/datastream/\n",
-                "cd /mnt/datastream/ && s4cmd --secret-key=kNTwrIM5Xsy18TCr6r+fWBCY/AdC2jhEXmyXk5ZP --access-key=AKIAID4T3SRDNF2OB3QA get s3://gd-shdevops/eason/datastream/code/demo_datastream.tar.gz\n",
+                "cd /mnt/datastream/ && s4cmd --secret-key=", {"Fn::GetAtt" : ["myaccesskey", "SecretAccessKey"]}, " --access-key=", {"Ref" : "myaccesskey"},
+                " get s3://gd-shdevops/eason/datastream/code/demo_datastream.tar.gz\n",
                 "cd /mnt/datastream/ && tar zxf demo_datastream.tar.gz\n",
                 
                 "cd /mnt/datastream/demo_datastream",
-                " && export PGPASSWORD='easoN123'",
-                " && psql -h ", {"Fn::GetAtt" : ["Redshift", "Endpoint.Address"]}, " -U eason -d bookrating -p 5439 -f dbinit.sql\n",
+                " && export ACCKEY='", {"Ref" : "myaccesskey"}, "'",
+                " && export SECKEY='", {"Fn::GetAtt" : ["myaccesskey", "SecretAccessKey"]}, "'",
+                " && cat dbinit.sql | perl -ne 'chomp($_);  $str = $_; $str =~ s/ACCKEY/$ENV{'ACCKEY'}/g; $str =~ s/SECKEY/$ENV{'SECKEY'}/g; print \"$str\\n\";' > dbinit_new.sql\n",
                 
-                "cd /mnt/datastream/ && s4cmd --secret-key=kNTwrIM5Xsy18TCr6r+fWBCY/AdC2jhEXmyXk5ZP --access-key=AKIAID4T3SRDNF2OB3QA get s3://gd-shdevops/eason/datastream/rating.tar.gz && tar zxf rating.tar.gz && mv ratings.csv demo_datastream/\n",
+                "cat send_rating_data.py | perl -ne 'chomp($_); $str = $_; $str =~ s/ACCKEY/$ENV{'ACCKEY'}/g; $str =~ s/SECKEY/$ENV{'SECKEY'}/g; print \"$str\\n\";' > send_rating_data_new.py && rm send_rating_data.py && mv send_rating_data_new.py send_rating_data.py\n",
                 
-                "cd /mnt/datastream/ && s4cmd --secret-key=kNTwrIM5Xsy18TCr6r+fWBCY/AdC2jhEXmyXk5ZP --access-key=AKIAID4T3SRDNF2OB3QA get s3://gd-shdevops/eason/datastream/code/bookrating_ds.yaml",
-                " && export REDSHIFT_DOMAIN='", {"Fn::GetAtt" : ["Redshift", "Endpoint.Address"]} ,":5439'",
-                " && cat bookrating_ds.yaml | perl -ne 'chomp($_);  $str = $_; $str =~ s/REDSHIFT_DOMAIN/$ENV{'REDSHIFT_DOMAIN'}/g; print \"$str\\n\";' > bookrating_ds_new.yaml\n",
+                "export PGPASSWORD='", {"Ref" : "RedshiftRootPass"}, "'",
+                " && psql -h ", {"Fn::GetAtt" : ["Redshift", "Endpoint.Address"]}, " -U ", {"Ref" : "RedshiftRootUser"}, " -d bookrating -p 5439 -f dbinit_new.sql\n",
+                
+                "cd /mnt/datastream/ && s4cmd --secret-key=", {"Fn::GetAtt" : ["myaccesskey", "SecretAccessKey"]}, " --access-key=", {"Ref" : "myaccesskey"},
+                " get s3://gd-shdevops/eason/datastream/rating.tar.gz && tar zxf rating.tar.gz && mv ratings.csv demo_datastream/\n",
+                
+                "cd /mnt/datastream/demo_datastream",
+                " && export REDSHIFT_DOMAIN='", {"Fn::GetAtt" : ["Redshift", "Endpoint.Address"]}, ":5439'",
+                " && cat bookrating_ds.yaml | perl -ne 'chomp($_);  $str = $_; $str =~ s/REDSHIFT_DOMAIN/$ENV{'REDSHIFT_DOMAIN'}/g; $str =~ s/PGPASS/$ENV{'PGPASSWORD'}/g; print \"$str\\n\";' > bookrating_ds_new.yaml\n",
                 
                 "mv /mnt/datastream/bookrating_ds_new.yaml /etc/grafana/provisioning/datasources/\n",
                 "service grafana-server restart\n",
@@ -264,6 +323,10 @@
     "GrafanaURL" : {
       "Description" : "Grafana Service URL, user/password: admin/admin",
       "Value" : {"Fn::Join" : ["", ["http://", {"Fn::GetAtt" : ["EC2Instance", "PublicIp"]}, ":3000"]]}
+    },
+    "AKSK4S3" : {
+      "Description" : "AKSK for S3 keys",
+      "Value" : {"Fn::Join" : ["", [{"Ref" : "myaccesskey"}, " / ", {"Fn::GetAtt" : ["myaccesskey", "SecretAccessKey"]}]]}
     }
   }
 }

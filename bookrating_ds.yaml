@@ -18,6 +18,6 @@ datasources:
   jsonData:
     sslmode: verify-full
   secureJsonData:
-    password: "easoN123"
+    password: PGPASS
   version: 1
   editable: true
