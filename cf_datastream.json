@@ -266,29 +266,29 @@
                 "service grafana-server start\n",
                 "grafana-cli plugins install grafana-piechart-panel\n",
                 "yum -y install postgresql\n",
+                
                 "mkdir -p /mnt/datastream/\n",
-                "cd /mnt/datastream/ && s4cmd --secret-key=", {"Fn::GetAtt" : ["myaccesskey", "SecretAccessKey"]}, " --access-key=", {"Ref" : "myaccesskey"},
-                " get s3://gd-shdevops/eason/datastream/code/demo_datastream.tar.gz\n",
-                "cd /mnt/datastream/ && tar zxf demo_datastream.tar.gz\n",
+                "cd /mnt/datastream/",
+                " && s4cmd --secret-key=", {"Fn::GetAtt" : ["myaccesskey", "SecretAccessKey"]}, " --access-key=", {"Ref" : "myaccesskey"}, " get s3://gd-shdevops/eason/datastream/code/demo_datastream.tar.gz",
+                " && tar zxf demo_datastream.tar.gz\n",
                 
                 "cd /mnt/datastream/demo_datastream",
                 " && export ACCKEY='", {"Ref" : "myaccesskey"}, "'",
                 " && export SECKEY='", {"Fn::GetAtt" : ["myaccesskey", "SecretAccessKey"]}, "'",
                 " && cat dbinit.sql | perl -ne 'chomp($_);  $str = $_; $str =~ s/ACCKEY/$ENV{'ACCKEY'}/g; $str =~ s/SECKEY/$ENV{'SECKEY'}/g; print \"$str\\n\";' > dbinit_new.sql\n",
-                
-                "cat send_rating_data.py | perl -ne 'chomp($_); $str = $_; $str =~ s/ACCKEY/$ENV{'ACCKEY'}/g; $str =~ s/SECKEY/$ENV{'SECKEY'}/g; print \"$str\\n\";' > send_rating_data_new.py && rm send_rating_data.py && mv send_rating_data_new.py send_rating_data.py\n",
-                
                 "export PGPASSWORD='", {"Ref" : "RedshiftRootPass"}, "'",
                 " && psql -h ", {"Fn::GetAtt" : ["Redshift", "Endpoint.Address"]}, " -U ", {"Ref" : "RedshiftRootUser"}, " -d bookrating -p 5439 -f dbinit_new.sql\n",
+                
+                "cat send_rating_data.py | perl -ne 'chomp($_); $str = $_; $str =~ s/ACCKEY/$ENV{'ACCKEY'}/g; $str =~ s/SECKEY/$ENV{'SECKEY'}/g; print \"$str\\n\";' > send_rating_data_new.py && rm send_rating_data.py && mv send_rating_data_new.py send_rating_data.py\n",
                 
                 "cd /mnt/datastream/ && s4cmd --secret-key=", {"Fn::GetAtt" : ["myaccesskey", "SecretAccessKey"]}, " --access-key=", {"Ref" : "myaccesskey"},
                 " get s3://gd-shdevops/eason/datastream/rating.tar.gz && tar zxf rating.tar.gz && mv ratings.csv demo_datastream/\n",
                 
                 "cd /mnt/datastream/demo_datastream",
                 " && export REDSHIFT_DOMAIN='", {"Fn::GetAtt" : ["Redshift", "Endpoint.Address"]}, ":5439'",
-                " && cat bookrating_ds.yaml | perl -ne 'chomp($_);  $str = $_; $str =~ s/REDSHIFT_DOMAIN/$ENV{'REDSHIFT_DOMAIN'}/g; $str =~ s/PGPASS/$ENV{'PGPASSWORD'}/g; print \"$str\\n\";' > bookrating_ds_new.yaml\n",
+                " && cat bookrating_ds.yaml | perl -ne 'chomp($_);  $str = $_; $str =~ s/REDSHIFT_DOMAIN/$ENV{'REDSHIFT_DOMAIN'}/g; $str =~ s/PGPASS/$ENV{'PGPASSWORD'}/g; print \"$str\\n\";' > bookrating_ds_new.yaml",
+                " && mv bookrating_ds_new.yaml /etc/grafana/provisioning/datasources/\n",
                 
-                "mv /mnt/datastream/bookrating_ds_new.yaml /etc/grafana/provisioning/datasources/\n",
                 "service grafana-server restart\n",
                 ""
               ]
