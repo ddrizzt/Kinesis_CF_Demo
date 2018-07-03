@@ -51,6 +51,16 @@
   },
   
   "Resources" : {
+    "PasswordStr": {
+      "Type": "AWS::CloudFormation::CustomResource",
+      "Properties": {
+        "Length": 8,
+        "Punctuation": true,
+        "RDSCompatible": true,
+        "ServiceToken": "arn:aws:lambda:us-west-2:944574695791:function:PassGenereator"
+      }
+    }
+    
     "IAMRole" : {
       "Type" : "AWS::IAM::Role",
       "Properties" : {
@@ -99,7 +109,7 @@
       "Properties" : {
         "Path" : "/",
         "LoginProfile" : {
-          "Password" : {"Ref" : "RedshiftRootPass"}
+          "Password" : {"Fn::GetAtt": ["PasswordStr", "RandomString"]}
         },
         "Policies" : [
           {
@@ -178,7 +188,7 @@
         "DBName" : "bookrating",
         "Encrypted" : false,
         "MasterUsername" : {"Ref" : "RedshiftRootUser"},
-        "MasterUserPassword" : {"Ref" : "RedshiftRootPass"},
+        "MasterUserPassword" : {"Fn::GetAtt": ["PasswordStr", "RandomString"]},
         "NodeType" : "dc2.large",
         "Port" : 5439,
         "PubliclyAccessible" : true
@@ -219,7 +229,7 @@
             "DataTableName" : "rating"
           },
           "Username" : {"Ref" : "RedshiftRootUser"},
-          "Password" : {"Ref" : "RedshiftRootPass"},
+          "Password" : {"Fn::GetAtt": ["PasswordStr", "RandomString"]},
           "RoleARN" : {"Fn::GetAtt" : ["IAMRole", "Arn"]},
           "S3Configuration" : {
             "BucketARN" : "arn:aws:s3:::gd-shdevops",
@@ -276,7 +286,7 @@
                 " && export ACCKEY='", {"Ref" : "myaccesskey"}, "'",
                 " && export SECKEY='", {"Fn::GetAtt" : ["myaccesskey", "SecretAccessKey"]}, "'",
                 " && cat dbinit.sql | perl -ne 'chomp($_);  $str = $_; $str =~ s/ACCKEY/$ENV{'ACCKEY'}/g; $str =~ s/SECKEY/$ENV{'SECKEY'}/g; print \"$str\\n\";' > dbinit_new.sql\n",
-                "export PGPASSWORD='", {"Ref" : "RedshiftRootPass"}, "'",
+                "export PGPASSWORD='", {"Fn::GetAtt": ["PasswordStr", "RandomString"]}, "'",
                 " && psql -h ", {"Fn::GetAtt" : ["Redshift", "Endpoint.Address"]}, " -U ", {"Ref" : "RedshiftRootUser"}, " -d bookrating -p 5439 -f dbinit_new.sql\n",
                 
                 "cat send_rating_data.py | perl -ne 'chomp($_); $str = $_; $str =~ s/ACCKEY/$ENV{'ACCKEY'}/g; $str =~ s/SECKEY/$ENV{'SECKEY'}/g; print \"$str\\n\";' > send_rating_data_new.py && rm send_rating_data.py && mv send_rating_data_new.py send_rating_data.py\n",
@@ -313,8 +323,8 @@
       "Value" : {"Fn::Join" : ["", [{"Fn::GetAtt" : ["EC2Instance", "PublicDnsName"]}, " / ", {"Fn::GetAtt" : ["EC2Instance", "PublicIp"]}]]}
     },
     "Redshift" : {
-      "Description" : "Redshift instance HOST:PORT",
-      "Value" : {"Fn::Join" : ["", [{"Fn::GetAtt" : ["Redshift", "Endpoint.Address"]}, ":", {"Fn::GetAtt" : ["Redshift", "Endpoint.Port"]}]]}
+      "Description" : "Redshift instance HOST:PORT User/Pass",
+      "Value" : {"Fn::Join" : ["", [{"Fn::GetAtt" : ["Redshift", "Endpoint.Address"]}, ":", {"Fn::GetAtt" : ["Redshift", "Endpoint.Port"]}, "   ", {"Ref" : "RedshiftRootUser"} ," / ", {"Fn::GetAtt": ["PasswordStr", "RandomString"]}]]}
     },
     "KinesisFirehose" : {
       "Description" : "Kinesis Firehose ID",
