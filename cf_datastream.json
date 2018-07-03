@@ -52,7 +52,7 @@
         "RDSCompatible": true,
         "ServiceToken": "arn:aws:lambda:us-west-2:944574695791:function:PassGenereator"
       }
-    }
+    },
     
     "IAMRole" : {
       "Type" : "AWS::IAM::Role",
