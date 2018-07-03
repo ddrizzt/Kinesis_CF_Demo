@@ -20,13 +20,6 @@
       "AllowedPattern" : "[0-9a-zA-Z_]{4,24}",
       "ConstraintDescription" : "Root user name for the redshift cluster"
     },
-    "RedshiftRootPass" : {
-      "Description" : "Redshift root user password",
-      "Type" : "String",
-      "NoEcho" : "true",
-      "AllowedPattern" : "[0-9a-zA-Z_]{4,24}",
-      "ConstraintDescription" : "Password must be between 4 and 24 characters and can only contain digits 0 through 9, ASCII letters A through Z (uppercase and lowercase), and a underscore (_)."
-    },
     "IPRange" : {
       "Description" : "The IP address range that can be open to public",
       "Type" : "String",
