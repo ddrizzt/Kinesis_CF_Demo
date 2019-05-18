@@ -13,7 +13,7 @@ client = boto3.client(
     'kinesis',
     aws_access_key_id='ACCKEY',
     aws_secret_access_key='SECKEY',
-    region_name='us-west-2'
+    region_name='ap-southeast-1'
 )
 
 resp = client.list_streams()

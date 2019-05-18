@@ -39,7 +39,7 @@
       "t2.micro" : {"Arch" : "NATHVM64"}
     },
     "AWSRegionArch2AMI" : {
-      "us-west-2" : {"HVM64" : "ami-31394949"}
+      "ap-southeast-1" : {"HVM64" : "ami-03097abf0db1cdff2"}
     }
   },
   
@@ -47,10 +47,10 @@
     "PasswordStr": {
       "Type": "AWS::CloudFormation::CustomResource",
       "Properties": {
-        "Length": 8,
+        "Length": 10,
         "Punctuation": true,
         "RDSCompatible": true,
-        "ServiceToken": "arn:aws:lambda:us-west-2:944574695791:function:PassGenereator"
+        "ServiceToken": "arn:aws:lambda:ap-southeast-1:757834721856:function:PassGenereator"
       }
     },
     
@@ -184,8 +184,11 @@
         "MasterUserPassword" : {"Fn::GetAtt": ["PasswordStr", "RandomString"]},
         "NodeType" : "dc2.large",
         "Port" : 5439,
-        "PubliclyAccessible" : true
+        "PubliclyAccessible" : true,
+        "VpcSecurityGroupIds": [{"Fn::GetAtt": ["InstanceSecurityGroup", "GroupId"]}]
       }
+
+
     },
     
     "Kinesis" : {
@@ -217,7 +220,7 @@
           },
           "ClusterJDBCURL" : {"Fn::Join" : ["", ["jdbc:redshift://", {"Fn::GetAtt" : ["Redshift", "Endpoint.Address"]}, ":5439/bookrating"]]},
           "CopyCommand" : {
-            "CopyOptions" : "MAXERROR 10000\ndelimiter ','\nGZIP\nTIMEFORMAT 'YYYY-MM-DD HH:MI:SS'\nREGION 'us-west-1'",
+            "CopyOptions" : "MAXERROR 10000\ndelimiter ','\nGZIP\nTIMEFORMAT 'YYYY-MM-DD HH:MI:SS'\nREGION 'ap-southeast-1'",
             "DataTableColumns" : "logtime,user_id,book_id,rating",
             "DataTableName" : "rating"
           },
@@ -225,13 +228,13 @@
           "Password" : {"Fn::GetAtt": ["PasswordStr", "RandomString"]},
           "RoleARN" : {"Fn::GetAtt" : ["IAMRole", "Arn"]},
           "S3Configuration" : {
-            "BucketARN" : "arn:aws:s3:::gd-shdevops",
+            "BucketARN" : "arn:aws:s3:::eason686hm",
             "BufferingHints" : {
               "IntervalInSeconds" : "60",
               "SizeInMBs" : "1"
             },
             "CompressionFormat" : "GZIP",
-            "Prefix" : "eason/datastream/logs/",
+            "Prefix" : "demos/datastream/logs/",
             "RoleARN" : {"Fn::GetAtt" : ["IAMRole", "Arn"]},
             "CloudWatchLoggingOptions" : {
               "Enabled" : true,
@@ -264,7 +267,7 @@
                 "yum update -y\n",
                 "yum -y install python-pip\n",
                 "pip install s4cmd\n",
-                "chmod +x /bin/s4cmd\n",
+                "chmod +x /usr/local/bin/s4cmd\n",
                 "yum -y install https://s3-us-west-2.amazonaws.com/grafana-releases/release/grafana-5.1.4-1.x86_64.rpm\n",
                 "service grafana-server start\n",
                 "grafana-cli plugins install grafana-piechart-panel\n",
@@ -272,10 +275,10 @@
                 
                 "mkdir -p /mnt/datastream/\n",
                 "cd /mnt/datastream/",
-                " && s4cmd --secret-key=", {"Fn::GetAtt" : ["myaccesskey", "SecretAccessKey"]}, " --access-key=", {"Ref" : "myaccesskey"}, " get s3://gd-shdevops/eason/datastream/code/demo_datastream.tar.gz",
-                " && tar zxf demo_datastream.tar.gz\n",
+                " && /usr/local/bin/s4cmd --secret-key=", {"Fn::GetAtt" : ["myaccesskey", "SecretAccessKey"]}, " --access-key=", {"Ref" : "myaccesskey"}, " get s3://eason686hm/demos/datastream/code/Kinesis_CF_Demo.tar.gz",
+                " && tar zxf Kinesis_CF_Demo.tar.gz\n",
                 
-                "cd /mnt/datastream/demo_datastream",
+                "cd /mnt/datastream/Kinesis_CF_Demo",
                 " && export ACCKEY='", {"Ref" : "myaccesskey"}, "'",
                 " && export SECKEY='", {"Fn::GetAtt" : ["myaccesskey", "SecretAccessKey"]}, "'",
                 " && cat dbinit.sql | perl -ne 'chomp($_);  $str = $_; $str =~ s/ACCKEY/$ENV{'ACCKEY'}/g; $str =~ s/SECKEY/$ENV{'SECKEY'}/g; print \"$str\\n\";' > dbinit_new.sql\n",
@@ -284,10 +287,9 @@
                 
                 "cat send_rating_data.py | perl -ne 'chomp($_); $str = $_; $str =~ s/ACCKEY/$ENV{'ACCKEY'}/g; $str =~ s/SECKEY/$ENV{'SECKEY'}/g; print \"$str\\n\";' > send_rating_data_new.py && rm send_rating_data.py && mv send_rating_data_new.py send_rating_data.py\n",
                 
-                "cd /mnt/datastream/ && s4cmd --secret-key=", {"Fn::GetAtt" : ["myaccesskey", "SecretAccessKey"]}, " --access-key=", {"Ref" : "myaccesskey"},
-                " get s3://gd-shdevops/eason/datastream/rating.tar.gz && tar zxf rating.tar.gz && mv ratings.csv demo_datastream/\n",
+                "cd /mnt/datastream/Kinesis_CF_Demo && gzip -d ratings.csv.gz\n",
                 
-                "cd /mnt/datastream/demo_datastream",
+                "cd /mnt/datastream/Kinesis_CF_Demo",
                 " && export REDSHIFT_DOMAIN='", {"Fn::GetAtt" : ["Redshift", "Endpoint.Address"]}, ":5439'",
                 " && cat bookrating_ds.yaml | perl -ne 'chomp($_);  $str = $_; $str =~ s/REDSHIFT_DOMAIN/$ENV{'REDSHIFT_DOMAIN'}/g; $str =~ s/PGPASS/$ENV{'PGPASSWORD'}/g; print \"$str\\n\";' > bookrating_ds_new.yaml",
                 " && mv bookrating_ds_new.yaml /etc/grafana/provisioning/datasources/\n",

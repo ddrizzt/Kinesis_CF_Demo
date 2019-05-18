@@ -24,10 +24,10 @@ GRANT ALL ON TABLE books TO PUBLIC;
 GRANT ALL ON TABLE rating TO PUBLIC;
 
 COPY books (book_id, isbn, authors, original_publication_year, original_title, title, language_code, small_image_url)
-FROM 's3://gd-shdevops/eason/datastream/books_new.tar.gz'
+FROM 's3://eason686hm/demos/datastream/data/books_new.tar.gz'
 CREDENTIALS 'aws_access_key_id=ACCKEY;aws_secret_access_key=SECKEY'
 GZIP
-REGION 'us-west-1'
+REGION 'ap-southeast-1'
 EMPTYASNULL
 TRUNCATECOLUMNS
 DELIMITER '\t'
