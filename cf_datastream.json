@@ -116,7 +116,17 @@
                     "kinesis:*",
                     "s3:PutObject",
                     "s3:GetObject",
-                    "s3:ListBucket"
+                    "s3:ListBucket",
+                    "cloudwatch:Describe*",
+                    "cloudwatch:List*",
+                    "cloudwatch:Get*",
+                    "ec2:Describe*",
+                    "ec2:Get*",
+                    "ec2:List*",
+                    "redshift:Describe*",
+                    "redshift:List*",
+                    "redshift:Get*",
+                    "tag:Get*"
                   ],
                   "Resource" : "*"
                 }
@@ -264,7 +274,8 @@
             "Fn::Join" : [
               "", [
                 "#!/bin/bash -v\n",
-                "yum update -y\n",
+                "yum update -y\n",                
+                "yum -y install stress\n",                
                 "yum -y install python-pip\n",
                 "pip install s4cmd\n",
                 "chmod +x /usr/local/bin/s4cmd\n",
@@ -292,7 +303,9 @@
                 "cd /mnt/datastream/Kinesis_CF_Demo",
                 " && export REDSHIFT_DOMAIN='", {"Fn::GetAtt" : ["Redshift", "Endpoint.Address"]}, ":5439'",
                 " && cat bookrating_ds.yaml | perl -ne 'chomp($_);  $str = $_; $str =~ s/REDSHIFT_DOMAIN/$ENV{'REDSHIFT_DOMAIN'}/g; $str =~ s/PGPASS/$ENV{'PGPASSWORD'}/g; print \"$str\\n\";' > bookrating_ds_new.yaml",
-                " && mv bookrating_ds_new.yaml /etc/grafana/provisioning/datasources/\n",
+                " && cat bookrating_cloudwatch_ds.yaml | perl -ne 'chomp($_);  $str = $_; $str =~ s/ACCESSKEY/$ENV{'ACCKEY'}/g; $str =~ s/SECRETKEY/$ENV{'SECKEY'}/g; print \"$str\\n\";' > bookrating_cloudwatch_ds_new.yaml",
+                " && mv bookrating_ds_new.yaml /etc/grafana/provisioning/datasources/",
+                " && mv bookrating_cloudwatch_ds_new.yaml /etc/grafana/provisioning/datasources/\n",
                 
                 "service grafana-server restart\n",
                 ""
