@@ -9,3 +9,4 @@ datasources:
     secureJsonData:
       accessKey: "ACCESSKEY"
       secretKey: "SECRETKEY"
+    editable: true
